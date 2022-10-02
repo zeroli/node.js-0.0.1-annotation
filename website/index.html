@@ -1,0 +1,72 @@
+<html>
+<style>
+</style> 
+<script type="text/javascript" src="sh_main.js"></script>
+<script type="text/javascript" src="sh_javascript.min.js"></script>
+<link type="text/css" rel="stylesheet" href="style.css">
+<link type="text/css" rel="stylesheet" href="sh_vim-dark.css">
+
+<title>node.js</title>
+<body onload="sh_highlightDocument();">
+<div id="toc">
+</div>
+<div id="content">
+
+<h1><a href="http://tinyclouds.org/node">Node</a></h1>
+
+<p id="introduction">Purely evented I/O for <a
+  href="http://code.google.com/p/v8/">V8 javascript</a>. 
+
+<p>An example of a web server written with Node which responds with
+"Hello World" after waiting two seconds:
+
+<pre>
+new node.http.Server(function (req, res) {
+  setTimeout(function () {
+    res.sendHeader(200, [["Content-Type", "text/plain"]]);
+    res.sendBody("Hello World");
+    res.finish();
+  }, 2000);
+}).listen(8000);
+puts("Server running at http://127.0.0.1:8000/");
+</pre>
+
+<p> To run the server, put the code into a file <code>example.js</code>
+and execute it with the <code>node</code> program
+<pre class="sh_none">% /usr/local/bin/node example.js
+Server running at http://127.0.0.1:8000/
+</pre>
+
+
+<p> See the <a href="api.html">API documentation</a> for more examples.
+
+<p> Node is released under an MIT license.</p>
+
+
+<h2 id="download">Download</h2>
+
+<p> TODO
+
+<h2 id="build">Build</h2>
+
+<p>Node aims to support all POSIX operating systems (including
+Windows with mingw) but at the moment it is only being tested on
+Linux, Macintosh, and FreeBSD.
+The build system requires Python.
+V8, on which Node is built, supports only IA-32 and ARM processors. 
+
+<pre class="sh_none">
+./configure
+make
+make install
+</pre>
+
+<p>To run the unit tests
+
+<pre class="sh_none">
+./configure --debug
+make test
+</pre>
+
+</body>
+</html>
