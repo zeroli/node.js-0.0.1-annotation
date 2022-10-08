@@ -2999,9 +2999,11 @@ Local<String> v8::String::NewSymbol(const char* data, int length) {
 }
 
 
+// 这个函数可以作为我们的切入点，看看v8是如何创建对象的
 Local<Number> v8::Number::New(double value) {
   EnsureInitialized("v8::Number::New()");
   ENTER_V8;
+  // i是namespace alias到v8::internal
   i::Handle<i::Object> result = i::Factory::NewNumber(value);
   return Utils::NumberToLocal(result);
 }

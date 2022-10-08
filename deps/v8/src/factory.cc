@@ -284,9 +284,11 @@ Handle<JSFunction> Factory::NewFunctionFromBoilerplate(
   return result;
 }
 
-
+// 工厂创建一个数值对象，以外界提供的数值
+// 返回Handle<Object> handle，对数值value的封装
 Handle<Object> Factory::NewNumber(double value,
                                   PretenureFlag pretenure) {
+  // 从堆中分配一个double类型的数值对象
   CALL_HEAP_FUNCTION(Heap::NumberFromDouble(value, pretenure), Object);
 }
 

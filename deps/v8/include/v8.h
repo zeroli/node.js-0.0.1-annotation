@@ -169,6 +169,7 @@ typedef void (*WeakReferenceCallback)(Persistent<Value> object,
  * behind the scenes and the same rules apply to these values as to
  * their handles.
  */
+// `Handle`是对类型T*指针的一个封装
 template <class T> class V8EXPORT_INLINE Handle {
  public:
 
@@ -199,6 +200,10 @@ template <class T> class V8EXPORT_INLINE Handle {
      * handles. For example, converting from a Handle<String> to a
      * Handle<Number>.
      */
+    // 这个宏做的事情比较有意思：
+    // while (false) {
+    //    *((static_cast<T**>(0)) = static_cast<S*>(0);  // 编译器会帮忙做语义检查
+    //}
     TYPE_CHECK(T, S);
   }
 
@@ -207,8 +212,10 @@ template <class T> class V8EXPORT_INLINE Handle {
    */
   bool IsEmpty() const { return val_ == 0; }
 
+  // `Handle`可以代表底下的类型指针访问对象
   T* operator->() const;
-
+  // `Handle`解引用，变成指针
+  // 这里并没有像智能指针一样，返回对象引用T&
   T* operator*() const;
 
   /**
@@ -223,10 +230,17 @@ template <class T> class V8EXPORT_INLINE Handle {
    * The handles' references are not checked.
    */
   template <class S> bool operator==(Handle<S> that) const {
+    // *this => Handle对象本身
+    // **this => 在Handle对象上解引用，调用operator*函数，返回T*指针
+    // cast成void**类型
     void** a = reinterpret_cast<void**>(**this);
     void** b = reinterpret_cast<void**>(*that);
     if (a == 0) return b == 0;
     if (b == 0) return false;
+    // 二级指针void**，解引用会变成void*，一级指针
+    // 一级指针相当于就是将对象的内存布局的前8个字节内容当作指针提取出来
+    // 下面的比较就相等于比较对象内存布局的前8个字节内容
+    // v8中对象类型的前8个字节会是什么呢？虚表指针？？
     return *a == *b;
   }
 

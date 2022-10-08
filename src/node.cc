@@ -6,7 +6,7 @@
 #include "timer.h"
 #include "constants.h"
 
-#include "natives.h" 
+#include "natives.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -25,7 +25,7 @@ ObjectWrap::~ObjectWrap ( )
 {
   handle_->SetInternalField(0, Undefined());
   handle_.Dispose();
-  handle_.Clear(); 
+  handle_.Clear();
 }
 
 ObjectWrap::ObjectWrap (Handle<Object> handle)
@@ -64,7 +64,7 @@ void*
 ObjectWrap::Unwrap (Handle<Object> handle)
 {
   HandleScope scope;
-  if (handle.IsEmpty()) { 
+  if (handle.IsEmpty()) {
     fprintf(stderr, "Node: Tried to unwrap empty object.\n");
     return NULL;
   }
@@ -165,15 +165,15 @@ ExecuteString(v8::Handle<v8::String> source,
 NODE_METHOD(node_exit)
 {
   int r = 0;
-  if (args.Length() > 0) 
+  if (args.Length() > 0)
     r = args[0]->IntegerValue();
   ::exit(r);
-  return Undefined(); 
+  return Undefined();
 }
 
-NODE_METHOD(compile) 
+NODE_METHOD(compile)
 {
-  if (args.Length() < 2) 
+  if (args.Length() < 2)
     return Undefined();
 
   HandleScope scope;
@@ -182,13 +182,13 @@ NODE_METHOD(compile)
   Local<String> filename = args[1]->ToString();
 
   Handle<Value> result = ExecuteString(source, filename);
-  
+
   return scope.Close(result);
 }
 
-NODE_METHOD(debug) 
+NODE_METHOD(debug)
 {
-  if (args.Length() < 1) 
+  if (args.Length() < 1)
     return Undefined();
   HandleScope scope;
   String::Utf8Value msg(args[0]->ToString());
@@ -203,7 +203,7 @@ OnFatalError (const char* location, const char* message)
 #define FATAL_ERROR "\033[1;31mV8 FATAL ERROR.\033[m"
   if (location)
     fprintf(stderr, FATAL_ERROR " %s %s\n", location, message);
-  else 
+  else
     fprintf(stderr, FATAL_ERROR " %s\n", message);
 
   ::exit(1);
@@ -219,23 +219,23 @@ node::FatalException (TryCatch &try_catch)
 
 static ev_async eio_watcher;
 
-static void 
+static void
 node_eio_cb (EV_P_ ev_async *w, int revents)
 {
   int r = eio_poll();
   /* returns 0 if all requests were handled, -1 if not, or the value of EIO_FINISH if != 0 */
 
-  // XXX is this check too heavy? 
+  // XXX is this check too heavy?
   //  it require three locks in eio
   //  what's the better way?
-  if (eio_nreqs () == 0 && eio_nready() == 0 && eio_npending() == 0) 
+  if (eio_nreqs () == 0 && eio_nready() == 0 && eio_npending() == 0)
     ev_async_stop(EV_DEFAULT_UC_ w);
 }
 
 static void
 eio_want_poll (void)
 {
-  ev_async_send(EV_DEFAULT_UC_ &eio_watcher); 
+  ev_async_send(EV_DEFAULT_UC_ &eio_watcher);
 }
 
 void
@@ -264,8 +264,9 @@ node::ParseEncoding (Handle<Value> encoding_v)
 }
 
 int
-main (int argc, char *argv[]) 
+main (int argc, char *argv[])
 {
+  // node.js-0.0.1版本采用libev库
   ev_default_loop(EVFLAG_AUTO); // initialize the default ev loop.
 
   // start eio thread pool
@@ -273,8 +274,10 @@ main (int argc, char *argv[])
   eio_init(eio_want_poll, NULL);
 
   V8::SetFlagsFromCommandLine(&argc, argv, true);
+  // V8 javascript engine初始化
   V8::Initialize();
 
+  // 第一个参数必须是javascript脚本文件
   if(argc < 2)  {
     fprintf(stderr, "No script was specified.\n");
     return 1;
@@ -282,47 +285,57 @@ main (int argc, char *argv[])
 
   string filename(argv[1]);
 
+  // 全局handle scope
   HandleScope handle_scope;
 
   Persistent<Context> context = Context::New(NULL, ObjectTemplate::New());
   Context::Scope context_scope(context);
   V8::SetFatalErrorHandler(OnFatalError);
 
+  // 管理所有符号的全局对象
   Local<Object> g = Context::GetCurrent()->Global();
 
   V8::PauseProfiler(); // to be resumed in Connection::on_read
 
+  // 在全局符号中加入以"node"为key的模块
   Local<Object> node = Object::New();
   g->Set(String::New("node"), node);
 
-  NODE_SET_METHOD(node, "compile", compile); // internal 
+  // 往node模块添加'compile'，'debug'，和'exit'函数
+  NODE_SET_METHOD(node, "compile", compile); // internal
   NODE_SET_METHOD(node, "debug", debug);
   NODE_SET_METHOD(node, "exit", node_exit);
 
+  // 创建数组保存命令行中的参数，从0开始
   Local<Array> arguments = Array::New(argc);
   for (int i = 0; i < argc; i++) {
     Local<String> arg = String::New(argv[i]);
     arguments->Set(Integer::New(i), arg);
   }
+  // 参数作为ARGV保存在全局符号表中
   g->Set(String::New("ARGV"), arguments);
 
 
   // BUILT-IN MODULES
   Timer::Initialize(node);
 
+  // 继续往'node'模块中加入一些属性，constants
   Local<Object> constants = Object::New();
   node->Set(String::New("constants"), constants);
   DefineConstants(constants);
 
+  // node模块加入fs的支持
   Local<Object> fs = Object::New();
   node->Set(String::New("fs"), fs);
   File::Initialize(fs);
 
+  // node模块加入tcp的支持
   Local<Object> tcp = Object::New();
   node->Set(String::New("tcp"), tcp);
   Acceptor::Initialize(tcp);
   Connection::Initialize(tcp);
 
+  // node模块加入http的支持
   Local<Object> http = Object::New();
   node->Set(String::New("http"), http);
   HTTPServer::Initialize(http);
@@ -331,22 +344,24 @@ main (int argc, char *argv[])
   // NATIVE JAVASCRIPT MODULES
   TryCatch try_catch;
 
+  // 有了上面node基本模块，我们就可以利用V8引擎导入更多的模块
   ExecuteString(String::New(native_http), String::New("http.js"));
-  if (try_catch.HasCaught()) goto native_js_error; 
+  if (try_catch.HasCaught()) goto native_js_error;
 
   ExecuteString(String::New(native_file), String::New("file.js"));
-  if (try_catch.HasCaught()) goto native_js_error; 
+  if (try_catch.HasCaught()) goto native_js_error;
 
   ExecuteString(String::New(native_node), String::New("node.js"));
-  if (try_catch.HasCaught()) goto native_js_error; 
+  if (try_catch.HasCaught()) goto native_js_error;
 
+  // 启动ev事件循环
   ev_loop(EV_DEFAULT_UC_ 0);
 
   context.Dispose();
   // The following line when uncommented causes an error.
   // To reproduce do this:
-  // > node --prof test-http_simple.js 
-  // 
+  // > node --prof test-http_simple.js
+  //
   // > curl http://localhost:8000/quit/
   //
   //V8::Dispose();

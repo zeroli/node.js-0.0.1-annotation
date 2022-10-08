@@ -123,9 +123,9 @@ AfterOpen (eio_req *req)
 static Handle<Value>
 Open (const Arguments& args)
 {
-  if ( args.Length() < 3 
-    || !args[0]->IsString() 
-    || !args[1]->IsInt32() 
+  if ( args.Length() < 3
+    || !args[0]->IsString()
+    || !args[1]->IsInt32()
     || !args[2]->IsInt32()
      ) return ThrowException(BAD_ARGUMENTS);
 
@@ -160,7 +160,7 @@ AfterWrite (eio_req *req)
 
 
 /* node.fs.write(fd, data, position, callback)
- * Wrapper for write(2). 
+ * Wrapper for write(2).
  *
  * 0 fd        integer. file descriptor
  * 1 data      the data to write (string = utf8, array = raw)
@@ -172,8 +172,8 @@ AfterWrite (eio_req *req)
 static Handle<Value>
 Write (const Arguments& args)
 {
-  if ( args.Length() < 3 
-    || !args[0]->IsInt32() 
+  if ( args.Length() < 3
+    || !args[0]->IsInt32()
      ) return ThrowException(BAD_ARGUMENTS);
 
   HandleScope scope;
@@ -181,7 +181,7 @@ Write (const Arguments& args)
   int fd = args[0]->Int32Value();
   off_t pos = args[2]->IsNumber() ? args[2]->IntegerValue() : -1;
 
-  char *buf = NULL; 
+  char *buf = NULL;
   size_t len = 0;
 
   if (args[1]->IsString()) {
@@ -190,7 +190,7 @@ Write (const Arguments& args)
     len = string->Utf8Length();
     buf = reinterpret_cast<char*>(malloc(len));
     string->WriteUtf8(buf, len);
-    
+
   } else if (args[1]->IsArray()) {
     // raw encoding
     Local<Array> array = Local<Array>::Cast(args[1]);
@@ -220,8 +220,8 @@ AfterUtf8Read (eio_req *req)
   argv[0] = Integer::New(req->errorno);
 
   char *buf = reinterpret_cast<char*>(req->ptr2);
-  if (req->result == 0) { 
-    // eof 
+  if (req->result == 0) {
+    // eof
     argv[1] = Local<Value>::New(Null());
   } else {
     argv[1] = String::New(buf, req->result);
@@ -242,8 +242,8 @@ AfterRawRead(eio_req *req)
 
   char *buf = reinterpret_cast<char*>(req->ptr2);
 
-  if (req->result == 0) { 
-    // eof 
+  if (req->result == 0) {
+    // eof
     argv[1] = Local<Value>::New(Null());
   } else {
     // raw encoding
@@ -260,7 +260,7 @@ AfterRawRead(eio_req *req)
 }
 
 /* node.fs.read(fd, length, position, encoding, callback)
- * Wrapper for read(2). 
+ * Wrapper for read(2).
  *
  * 0 fd        integer. file descriptor
  * 1 length    integer. length to read
@@ -273,7 +273,7 @@ AfterRawRead(eio_req *req)
 static Handle<Value>
 Read (const Arguments& args)
 {
-  if ( args.Length() < 3 
+  if ( args.Length() < 3
     || !args[0]->IsInt32()   // fd
     || !args[1]->IsNumber()  // len
      ) return ThrowException(BAD_ARGUMENTS);
@@ -291,7 +291,7 @@ Read (const Arguments& args)
 
   MAKE_CALLBACK_PTR
   // NOTE: 2nd param: NULL pointer tells eio to allocate it itself
-  eio_read(fd, NULL, len, pos, EIO_PRI_DEFAULT, 
+  eio_read(fd, NULL, len, pos, EIO_PRI_DEFAULT,
       encoding == UTF8 ? AfterUtf8Read : AfterRawRead, callback);
   return Undefined();
 }
@@ -377,8 +377,9 @@ StrError (const Arguments& args)
 void
 File::Initialize (Handle<Object> target)
 {
-  HandleScope scope;
+  HandleScope scope;  // 局部handle作用域
 
+  // 注册C函数到JS引擎
   // POSIX Wrappers
   NODE_SET_METHOD(target, "close", Close);
   NODE_SET_METHOD(target, "open", Open);
