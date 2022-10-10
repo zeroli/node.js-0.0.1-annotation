@@ -238,9 +238,6 @@ template <class T> class V8EXPORT_INLINE Handle {
     if (a == 0) return b == 0;
     if (b == 0) return false;
     // 二级指针void**，解引用会变成void*，一级指针
-    // 一级指针相当于就是将对象的内存布局的前8个字节内容当作指针提取出来
-    // 下面的比较就相等于比较对象内存布局的前8个字节内容
-    // v8中对象类型的前8个字节会是什么呢？虚表指针？？
     return *a == *b;
   }
 
